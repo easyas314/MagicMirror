@@ -9,6 +9,61 @@
  * Changes to this files will be ignored by GIT. *
  *****************************************************/
 
- body {
- 	
- }
+.MMM-ClockDayPhase {
+	transform: scale(1.2, 1.2);
+}
+
+/*
+ *  * CALENDAR SPECIFIC
+ *   */
+
+.fa.fa-calendar {
+	color: #ff0000;
+	/* Red */
+}
+
+.fa.fa-birthday-cake {
+	color: #ff0000;
+	/* Red */
+}
+
+.fa.fa-calendar-check-o {
+	color: #ffff00;
+	/* Yellow */
+}
+
+fa.fa-calendar-o {
+	color: #ffff00;
+	/* white */
+}
+
+.brightb {
+	color: #55acee;
+}
+
+.calendar .header {
+	color: #F00;
+}
+
+
+/*.newsfeed div.light.small.dimmed {
+ *   color: #F00;
+ *     font-size: 9px;
+ *     }*/
+
+/* aligns the table to the right */
+
+.MMM-SystemStats table {
+	width: initial;
+	float: right;
+}
+
+/* aligns all columns to the right within the table */
+
+.MMM-SystemStats td {
+	text-align: right !important;
+}
+
+.MMM-NetworkScanner ul .fa-ul li .fa-li {
+	float: left;
+}
