@@ -1,0 +1,31 @@
+
+## Documentation
+
+This is it, dude. Mostly a test to create another file and notes for this fork.
+
+Here's how the clone of this repo looks on my PC ...
+$ git remote -v
+MichMich	git@github.com:MichMich/MagicMirror.git (fetch)
+MichMich	git@github.com:MichMich/MagicMirror.git (push)
+jclark0000	git@github.com:jclarke0000/MMM-DarkSkyForecast.git (fetch)
+jclark0000	git@github.com:jclarke0000/MMM-DarkSkyForecast.git (push)
+origin	git@github.com:easyas314/MagicMirror.git (fetch)
+origin	git@github.com:easyas314/MagicMirror.git (push)
+
+... updating involves ...
+
+$ git fetch MichMich
+$ git fetch jclark0000
+
+$ git merge MichMich/master
+... this may create some merge conflicts that will need to be resolved.
+... in my case the package.json need to either by "my" HEAD, or the MichMich lines; I deleted "my HEAD" stuff
+... git add and commit these ... and possibly more git cleanup...
+
+The MM had a (much) newer version and I decided to just:
+$ npm install
+
+... and I'm wanting to just run a server, so:
+$ node serveronly
+
+
