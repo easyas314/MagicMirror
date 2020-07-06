@@ -1,37 +1,18 @@
-/* global Log, Module, moment */
-
 /* Magic Mirror
  * Module: Compliments
  *
- * By Michael Teeuw http://michaelteeuw.nl
+ * By Michael Teeuw https://michaelteeuw.nl
  * MIT Licensed.
  */
 Module.register("compliments", {
-
 	// Module config defaults.
 	defaults: {
 		compliments: {
-			anytime: [
-				"Hey there sexy!"
-			],
-			morning: [
-				"Good morning, handsome!",
-				"Enjoy your day!",
-				"How was your sleep?"
-			],
-			afternoon: [
-				"Hello, beauty!",
-				"You look sexy!",
-				"Looking good today!"
-			],
-			evening: [
-				"Wow, you look hot!",
-				"You look nice!",
-				"Hi, sexy!"
-			],
-			"....-01-01": [
-				"Happy new year!"
-			]
+			anytime: ["Hey there sexy!"],
+			morning: ["Good morning, handsome!", "Enjoy your day!", "How was your sleep?"],
+			afternoon: ["Hello, beauty!", "You look sexy!", "Looking good today!"],
+			evening: ["Wow, you look hot!", "You look nice!", "Hi, sexy!"],
+			"....-01-01": ["Happy new year!"]
 		},
 		updateInterval: 30000,
 		remoteFile: null,
@@ -42,31 +23,31 @@ Module.register("compliments", {
 		afternoonEndTime: 17,
 		random: true
 	},
-	lastIndexUsed:-1,
+	lastIndexUsed: -1,
 	// Set currentweather from module
 	currentWeatherType: "",
 
 	// Define required scripts.
-	getScripts: function() {
+	getScripts: function () {
 		return ["moment.js"];
 	},
 
 	// Define start sequence.
-	start: function() {
+	start: function () {
 		Log.info("Starting module: " + this.name);
 
 		this.lastComplimentIndex = -1;
 
 		var self = this;
 		if (this.config.remoteFile !== null) {
-			this.complimentFile(function(response) {
+			this.complimentFile(function (response) {
 				self.config.compliments = JSON.parse(response);
 				self.updateDom();
 			});
 		}
 
 		// Schedule update timer.
-		setInterval(function() {
+		setInterval(function () {
 			self.updateDom(self.config.fadeSpeed);
 		}, this.config.updateInterval);
 	},
@@ -78,12 +59,12 @@ Module.register("compliments", {
 	 *
 	 * return Number - Random index.
 	 */
-	randomIndex: function(compliments) {
+	randomIndex: function (compliments) {
 		if (compliments.length === 1) {
 			return 0;
 		}
 
-		var generate = function() {
+		var generate = function () {
 			return Math.floor(Math.random() * compliments.length);
 		};
 
@@ -103,7 +84,7 @@ Module.register("compliments", {
 	 *
 	 * return compliments Array<String> - Array with compliments for the time of the day.
 	 */
-	complimentArray: function() {
+	complimentArray: function () {
 		var hour = moment().hour();
 		var date = moment().format("YYYY-MM-DD");
 		var compliments;
@@ -112,7 +93,7 @@ Module.register("compliments", {
 			compliments = this.config.compliments.morning.slice(0);
 		} else if (hour >= this.config.afternoonStartTime && hour < this.config.afternoonEndTime && this.config.compliments.hasOwnProperty("afternoon")) {
 			compliments = this.config.compliments.afternoon.slice(0);
-		} else if(this.config.compliments.hasOwnProperty("evening")) {
+		} else if (this.config.compliments.hasOwnProperty("evening")) {
 			compliments = this.config.compliments.evening.slice(0);
 		}
 
@@ -126,7 +107,7 @@ Module.register("compliments", {
 
 		compliments.push.apply(compliments, this.config.compliments.anytime);
 
-		for (entry in this.config.compliments) {
+		for (var entry in this.config.compliments) {
 			if (new RegExp(entry).test(date)) {
 				compliments.push.apply(compliments, this.config.compliments[entry]);
 			}
@@ -138,13 +119,13 @@ Module.register("compliments", {
 	/* complimentFile(callback)
 	 * Retrieve a file from the local filesystem
 	 */
-	complimentFile: function(callback) {
+	complimentFile: function (callback) {
 		var xobj = new XMLHttpRequest(),
 			isRemote = this.config.remoteFile.indexOf("http://") === 0 || this.config.remoteFile.indexOf("https://") === 0,
 			path = isRemote ? this.config.remoteFile : this.file(this.config.remoteFile);
 		xobj.overrideMimeType("application/json");
 		xobj.open("GET", path, true);
-		xobj.onreadystatechange = function() {
+		xobj.onreadystatechange = function () {
 			if (xobj.readyState === 4 && xobj.status === 200) {
 				callback(xobj.responseText);
 			}
@@ -157,27 +138,26 @@ Module.register("compliments", {
 	 *
 	 * return compliment string - A compliment.
 	 */
-	randomCompliment: function() {
+	randomCompliment: function () {
 		// get the current time of day compliments list
 		var compliments = this.complimentArray();
 		// variable for index to next message to display
 		let index = 0;
 		// are we randomizing
-		if(this.config.random){
+		if (this.config.random) {
 			// yes
 			index = this.randomIndex(compliments);
-		}
-		else{
+		} else {
 			// no, sequential
 			// if doing sequential, don't fall off the end
-			index = (this.lastIndexUsed >= (compliments.length-1))?0: ++this.lastIndexUsed;
+			index = this.lastIndexUsed >= compliments.length - 1 ? 0 : ++this.lastIndexUsed;
 		}
 
 		return compliments[index] || "";
 	},
 
 	// Override dom generator.
-	getDom: function() {
+	getDom: function () {
 		var wrapper = document.createElement("div");
 		wrapper.className = this.config.classes ? this.config.classes : "thin xlarge bright pre-line";
 		// get the compliment text
@@ -187,7 +167,7 @@ Module.register("compliments", {
 		// create a span to hold it all
 		var compliment = document.createElement("span");
 		// process all the parts of the compliment text
-		for (part of parts){
+		for (var part of parts) {
 			// create a text element for each part
 			compliment.appendChild(document.createTextNode(part));
 			// add a break `
@@ -201,7 +181,7 @@ Module.register("compliments", {
 	},
 
 	// From data currentweather set weather type
-	setCurrentWeatherType: function(data) {
+	setCurrentWeatherType: function (data) {
 		var weatherIconTable = {
 			"01d": "day_sunny",
 			"02d": "day_cloudy",
@@ -226,10 +206,9 @@ Module.register("compliments", {
 	},
 
 	// Override notification handler.
-	notificationReceived: function(notification, payload, sender) {
+	notificationReceived: function (notification, payload, sender) {
 		if (notification === "CURRENTWEATHER_DATA") {
 			this.setCurrentWeatherType(payload.data);
 		}
-	},
-
+	}
 });
