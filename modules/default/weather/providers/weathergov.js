@@ -1,4 +1,4 @@
-/* global WeatherProvider, WeatherObject */
+/* global WeatherProvider, WeatherObject, SunCalc */
 
 /* Magic Mirror
  * Module: Weather
@@ -11,9 +11,7 @@
  * Note that this is only for US locations (lat and lon) and does not require an API key
  * Since it is free, there are some items missing - like sunrise, sunset, humidity, etc.
  */
-
 WeatherProvider.register("weathergov", {
-
 	// Set the name of the provider.
 	// This isn't strictly necessary, since it will fallback to the provider identifier
 	// But for debugging (and future alerts) it would be nice to have the real name.
@@ -22,7 +20,7 @@ WeatherProvider.register("weathergov", {
 	// Overwrite the fetchCurrentWeather method.
 	fetchCurrentWeather() {
 		this.fetchData(this.getUrl())
-			.then(data => {
+			.then((data) => {
 				if (!data || !data.properties || !data.properties.periods || !data.properties.periods.length) {
 					// Did not receive usable new data.
 					// Maybe this needs a better check?
@@ -32,15 +30,16 @@ WeatherProvider.register("weathergov", {
 				const currentWeather = this.generateWeatherObjectFromCurrentWeather(data.properties.periods[0]);
 				this.setCurrentWeather(currentWeather);
 			})
-			.catch(function(request) {
+			.catch(function (request) {
 				Log.error("Could not load data ... ", request);
 			})
+			.finally(() => this.updateAvailable());
 	},
 
 	// Overwrite the fetchCurrentWeather method.
 	fetchWeatherForecast() {
 		this.fetchData(this.getUrl())
-			.then(data => {
+			.then((data) => {
 				if (!data || !data.properties || !data.properties.periods || !data.properties.periods.length) {
 					// Did not receive usable new data.
 					// Maybe this needs a better check?
@@ -50,9 +49,10 @@ WeatherProvider.register("weathergov", {
 				const forecast = this.generateWeatherObjectsFromForecast(data.properties.periods);
 				this.setWeatherForecast(forecast);
 			})
-			.catch(function(request) {
+			.catch(function (request) {
 				Log.error("Could not load data ... ", request);
 			})
+			.finally(() => this.updateAvailable());
 	},
 
 	/** Weather.gov Specific Methods - These are not part of the default provider methods */
@@ -67,12 +67,17 @@ WeatherProvider.register("weathergov", {
 	 * Generate a WeatherObject based on currentWeatherInformation
 	 */
 	generateWeatherObjectFromCurrentWeather(currentWeatherData) {
-		const currentWeather = new WeatherObject(this.config.units);
+		const currentWeather = new WeatherObject(this.config.units, this.config.tempUnits, this.config.windUnits);
 
 		currentWeather.temperature = currentWeatherData.temperature;
 		currentWeather.windSpeed = currentWeatherData.windSpeed.split(" ", 1);
-		currentWeather.windDirection = this.convertDirectiontoDegrees(currentWeatherData.windDirection);
+		currentWeather.windDirection = this.convertWindDirection(currentWeatherData.windDirection);
 		currentWeather.weatherType = this.convertWeatherType(currentWeatherData.shortForecast, currentWeatherData.isDaytime);
+
+		// determine the sunrise/sunset times - not supplied in weather.gov data
+		let times = this.calcAstroData(this.config.lat, this.config.lon);
+		currentWeather.sunrise = times[0];
+		currentWeather.sunset = times[1];
 
 		return currentWeather;
 	},
@@ -95,13 +100,11 @@ WeatherProvider.register("weathergov", {
 		let maxTemp = [];
 		// variable for date
 		let date = "";
-		let weather = new WeatherObject(this.config.units);
+		let weather = new WeatherObject(this.config.units, this.config.tempUnits, this.config.windUnits);
 		weather.precipitation = 0;
 
 		for (const forecast of forecasts) {
-
 			if (date !== moment(forecast.startTime).format("YYYY-MM-DD")) {
-
 				// calculate minimum/maximum temperature, specify rain amount
 				weather.minTemperature = Math.min.apply(null, minTemp);
 				weather.maxTemperature = Math.max.apply(null, maxTemp);
@@ -109,7 +112,7 @@ WeatherProvider.register("weathergov", {
 				// push weather information to days array
 				days.push(weather);
 				// create new weather-object
-				weather = new WeatherObject(this.config.units);
+				weather = new WeatherObject(this.config.units, this.config.tempUnits, this.config.windUnits);
 
 				minTemp = [];
 				maxTemp = [];
@@ -134,15 +137,29 @@ WeatherProvider.register("weathergov", {
 			minTemp.push(forecast.temperature);
 			maxTemp.push(forecast.temperature);
 		}
-		
+
 		// last day
-		// calculate minimum/maximum temperature, specify rain amount
+		// calculate minimum/maximum temperature
 		weather.minTemperature = Math.min.apply(null, minTemp);
 		weather.maxTemperature = Math.max.apply(null, maxTemp);
 
 		// push weather information to days array
 		days.push(weather);
 		return days.slice(1);
+	},
+
+	/*
+	 * Calculate the astronomical data
+	 */
+	calcAstroData(lat, lon) {
+		const sunTimes = [];
+
+		// determine the sunrise/sunset times
+		let times = SunCalc.getTimes(new Date(), lat, lon);
+		sunTimes.push(moment(times.sunrise, "X"));
+		sunTimes.push(moment(times.sunset, "X"));
+
+		return sunTimes;
 	},
 
 	/*
@@ -202,7 +219,7 @@ WeatherProvider.register("weathergov", {
 			}
 
 			return "night-clear";
-		} else if (weatherType.includes("Dust") || weatherType.includes("Sand")) {	
+		} else if (weatherType.includes("Dust") || weatherType.includes("Sand")) {
 			return "dust";
 		} else if (weatherType.includes("Fog")) {
 			return "fog";
@@ -218,39 +235,26 @@ WeatherProvider.register("weathergov", {
 	/*
 	Convert the direction into Degrees
 	*/
-	convertDirectiontoDegrees(direction) {
-		if (direction === "NNE"){
-			return 33.75;
-		} else if (direction === "NE") {
-			return 56.25;
-		} else if (direction === "ENE") {
-			return 78.75;
-		} else if (direction === "E") {
-			return 101.25;
-		} else if (direction === "ESE") {
-			return 123.75;
-		} else if (direction === "SE") {
-			return 146.25;
-		} else if (direction === "SSE") {
-			return 168.75;
-		} else if (direction === "S") {
-			return 191.25;
-		} else if (direction === "SSW") {
-			return 213.75;
-		} else if (direction === "SW") {
-			return 236.25;
-		} else if (direction === "WSW") {
-			return 258.75;
-		} else if (direction === "W") {
-			return 281.25;
-		} else if (direction === "WNW") {
-			return 303.75;
-		} else if (direction === "NW") {
-			return 326.25;
-		} else if (direction === "NNW") {
-			return 348.75;
-		} else {
-			return 0;
-		}
+	convertWindDirection(windDirection) {
+		const windCardinals = {
+			N: 0,
+			NNE: 22,
+			NE: 45,
+			ENE: 67,
+			E: 90,
+			ESE: 112,
+			SE: 135,
+			SSE: 157,
+			S: 180,
+			SSW: 202,
+			SW: 225,
+			WSW: 247,
+			W: 270,
+			WNW: 292,
+			NW: 315,
+			NNW: 337
+		};
+
+		return windCardinals.hasOwnProperty(windDirection) ? windCardinals[windDirection] : null;
 	}
 });

@@ -1,13 +1,7 @@
-var fs = require("fs");
-var path = require("path");
-var chai = require("chai");
-var expect = chai.expect;
-var vm = require("vm");
+var expect = require("chai").expect;
 
-
-describe("Functions into modules/default/newsfeed/newsfeed.js", function() {
-
-	Module = {}
+describe("Functions into modules/default/newsfeed/newsfeed.js", function () {
+	Module = {};
 	Module.definitions = {};
 	Module.register = function (name, moduleDefinition) {
 		Module.definitions[name] = moduleDefinition;
@@ -16,22 +10,20 @@ describe("Functions into modules/default/newsfeed/newsfeed.js", function() {
 	// load newsfeed.js
 	require("../../../modules/default/newsfeed/newsfeed.js");
 
-	describe("capitalizeFirstLetter", function() {
-		words = {
-			"rodrigo": "Rodrigo",
+	describe("capitalizeFirstLetter", function () {
+		const words = {
+			rodrigo: "Rodrigo",
 			"123m": "123m",
 			"magic mirror": "Magic mirror",
 			",a": ",a",
-			"ñandú": "Ñandú",
+			ñandú: "Ñandú",
 			".!": ".!"
 		};
 
-		Object.keys(words).forEach(word => {
-			it(`for ${word} should return ${words[word]}`, function() {
+		Object.keys(words).forEach((word) => {
+			it(`for ${word} should return ${words[word]}`, function () {
 				expect(Module.definitions.newsfeed.capitalizeFirstLetter(word)).to.equal(words[word]);
 			});
 		});
 	});
-
 });
-

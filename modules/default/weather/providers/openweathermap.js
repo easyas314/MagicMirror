@@ -3,14 +3,12 @@
 /* Magic Mirror
  * Module: Weather
  *
- * By Michael Teeuw http://michaelteeuw.nl
+ * By Michael Teeuw https://michaelteeuw.nl
  * MIT Licensed.
  *
  * This class is the blueprint for a weather provider.
  */
-
 WeatherProvider.register("openweathermap", {
-
 	// Set the name of the provider.
 	// This isn't strictly necessary, since it will fallback to the provider identifier
 	// But for debugging (and future alerts) it would be nice to have the real name.
@@ -19,7 +17,7 @@ WeatherProvider.register("openweathermap", {
 	// Overwrite the fetchCurrentWeather method.
 	fetchCurrentWeather() {
 		this.fetchData(this.getUrl())
-			.then(data => {
+			.then((data) => {
 				if (!data || !data.main || typeof data.main.temp === "undefined") {
 					// Did not receive usable new data.
 					// Maybe this needs a better check?
@@ -31,15 +29,16 @@ WeatherProvider.register("openweathermap", {
 				const currentWeather = this.generateWeatherObjectFromCurrentWeather(data);
 				this.setCurrentWeather(currentWeather);
 			})
-			.catch(function(request) {
+			.catch(function (request) {
 				Log.error("Could not load data ... ", request);
 			})
+			.finally(() => this.updateAvailable());
 	},
 
 	// Overwrite the fetchCurrentWeather method.
 	fetchWeatherForecast() {
 		this.fetchData(this.getUrl())
-			.then(data => {
+			.then((data) => {
 				if (!data || !data.list || !data.list.length) {
 					// Did not receive usable new data.
 					// Maybe this needs a better check?
@@ -51,9 +50,10 @@ WeatherProvider.register("openweathermap", {
 				const forecast = this.generateWeatherObjectsFromForecast(data.list);
 				this.setWeatherForecast(forecast);
 			})
-			.catch(function(request) {
+			.catch(function (request) {
 				Log.error("Could not load data ... ", request);
 			})
+			.finally(() => this.updateAvailable());
 	},
 
 	/** OpenWeatherMap Specific Methods - These are not part of the default provider methods */
@@ -68,7 +68,7 @@ WeatherProvider.register("openweathermap", {
 	 * Generate a WeatherObject based on currentWeatherInformation
 	 */
 	generateWeatherObjectFromCurrentWeather(currentWeatherData) {
-		const currentWeather = new WeatherObject(this.config.units);
+		const currentWeather = new WeatherObject(this.config.units, this.config.tempUnits, this.config.windUnits);
 
 		currentWeather.humidity = currentWeatherData.main.humidity;
 		currentWeather.temperature = currentWeatherData.main.temp;
@@ -85,14 +85,13 @@ WeatherProvider.register("openweathermap", {
 	 * Generate WeatherObjects based on forecast information
 	 */
 	generateWeatherObjectsFromForecast(forecasts) {
-
-		if (this.config.weatherEndpoint == "/forecast") {
+		if (this.config.weatherEndpoint === "/forecast") {
 			return this.fetchForecastHourly(forecasts);
-		} else if (this.config.weatherEndpoint == "/forecast/daily") {
+		} else if (this.config.weatherEndpoint === "/forecast/daily") {
 			return this.fetchForecastDaily(forecasts);
 		}
 		// if weatherEndpoint does not match forecast or forecast/daily, what should be returned?
-		const days = [new WeatherObject(this.config.units)];
+		const days = [new WeatherObject(this.config.units, this.config.tempUnits, this.config.windUnits)];
 		return days;
 	},
 
@@ -109,10 +108,9 @@ WeatherProvider.register("openweathermap", {
 		let snow = 0;
 		// variable for date
 		let date = "";
-		let weather = new WeatherObject(this.config.units);
+		let weather = new WeatherObject(this.config.units, this.config.tempUnits, this.config.windUnits);
 
 		for (const forecast of forecasts) {
-
 			if (date !== moment(forecast.dt, "X").format("YYYY-MM-DD")) {
 				// calculate minimum/maximum temperature, specify rain amount
 				weather.minTemperature = Math.min.apply(null, minTemp);
@@ -123,7 +121,7 @@ WeatherProvider.register("openweathermap", {
 				// push weather information to days array
 				days.push(weather);
 				// create new weather-object
-				weather = new WeatherObject(this.config.units);
+				weather = new WeatherObject(this.config.units, this.config.tempUnits, this.config.windUnits);
 
 				minTemp = [];
 				maxTemp = [];
@@ -138,9 +136,8 @@ WeatherProvider.register("openweathermap", {
 
 				// If the first value of today is later than 17:00, we have an icon at least!
 				weather.weatherType = this.convertWeatherType(forecast.weather[0].icon);
-
 			}
-				
+
 			if (moment(forecast.dt, "X").format("H") >= 8 && moment(forecast.dt, "X").format("H") <= 17) {
 				weather.weatherType = this.convertWeatherType(forecast.weather[0].icon);
 			}
@@ -187,7 +184,7 @@ WeatherProvider.register("openweathermap", {
 		const days = [];
 
 		for (const forecast of forecasts) {
-			const weather = new WeatherObject(this.config.units);
+			const weather = new WeatherObject(this.config.units, this.config.tempUnits, this.config.windUnits);
 
 			weather.date = moment(forecast.dt, "X");
 			weather.minTemperature = forecast.temp.min;
@@ -221,7 +218,7 @@ WeatherProvider.register("openweathermap", {
 			days.push(weather);
 		}
 
-	return days;
+		return days;
 	},
 
 	/*
@@ -259,16 +256,16 @@ WeatherProvider.register("openweathermap", {
 	 */
 	getParams() {
 		let params = "?";
-		if(this.config.locationID) {
+		if (this.config.locationID) {
 			params += "id=" + this.config.locationID;
-		} else if(this.config.location) {
+		} else if (this.config.location) {
 			params += "q=" + this.config.location;
 		} else if (this.firstEvent && this.firstEvent.geo) {
 			params += "lat=" + this.firstEvent.geo.lat + "&lon=" + this.firstEvent.geo.lon;
 		} else if (this.firstEvent && this.firstEvent.location) {
 			params += "q=" + this.firstEvent.location;
 		} else {
-			this.hide(this.config.animationSpeed, {lockString:this.identifier});
+			this.hide(this.config.animationSpeed, { lockString: this.identifier });
 			return;
 		}
 
